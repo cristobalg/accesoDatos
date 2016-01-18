@@ -1,0 +1,591 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0055)http://www.javapractices.com/topic/TopicAction.do?Id=42 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <title>
+  Java Practices -&gt; Reading and writing text files
+ </title>
+ <link rel="stylesheet" type="text/css" href="./Java Practices -_ Reading and writing text files_files/stylesheet9.css" media="all">
+ 
+ <link rel="shortcut icon" href="http://www.javapractices.com/images/favicon.ico;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" type="image/vnd.microsoft.icon">
+ <meta name="description" content="Concise presentations of java programming practices, tasks, and conventions, amply illustrated with syntax highlighted code examples.">
+ 
+ <meta name="keywords" content="buffer,buffering,buffers,close,flush,i/o,input/output,java.io,reader,writer,read,text,write,java,java programming,java practices,java idiom,java style,java design patterns,java coding conventions,">
+ 
+ 
+</head>
+ 
+<body>
+
+
+<div class="menu-bar">
+ 
+  <a href="http://www.javapractices.com/home/HomeAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" title="Table of Contents">Home</a> |
+  <a href="http://www.javapractices.com/vote/VoteSummaryAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" title="View Poll Results">Poll</a> |
+   
+  
+  <b><a href="http://www.javapractices.com/source/SourceAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" title="Grab Source Code">Source Code</a></b><img class="no-margin" src="./Java Practices -_ Reading and writing text files_files/goldstar.gif" alt=""> |
+
+  <a href="https://ca.linkedin.com/in/johnohanley" title="Hire me"> <b>Hire Me</b></a> | 
+  <a href="http://www.web4j.com/Java_Web_Application_Framework_Overview.jsp?From=1" title="Free Download - Java Web Application Framework"><b>WEB4J</b></a> |
+  
+  <a href="http://www.formula4j.com/" title="Math expression parser"><b>Formula4J</b></a> |
+
+  <a href="http://www.amazon.com/exec/obidos/ASIN/0321356683/ref=nosim/javapractices-20"><b>Effective Java</b></a> |
+
+   <a href="http://www.javapractices.com/references/ReferencesAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" title="References">Links</a>
+   
+  <form action="http://www.javapractices.com/search/SearchAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" method="get" class="search-form">
+   <input type="text" name="SearchTerms" value="" size="12" maxlength="50" class="search">
+   <input type="submit" value="Search">
+  </form>
+ 
+</div>
+
+<p>
+
+
+
+
+  
+
+ 
+
+
+
+
+
+
+</p><p class="display-messages">
+
+ 
+
+ 
+
+</p>
+
+
+<div class="main-layout">
+ 
+   
+
+ 
+
+
+
+
+<div class="page-title">Reading and writing text files</div>
+
+<div class="main-body">
+ 
+<br>
+In JDK 7, the most important classes for text files are:
+<ul>
+ <li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Paths.html">Paths</a></tt> and <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Path.html">Path</a></tt> - file locations/names, but not their content.
+ </li><li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html">Files</a></tt> - operations on file content.
+ </li><li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/charset/StandardCharsets.html">StandardCharsets</a></tt> and 
+ <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/charset/Charset.html">Charset</a></tt> (an older class), for encodings of text files.
+ </li><li>the <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/File.html#toPath%28%29">File.toPath</a></tt> method, 
+ which lets older code interact nicely with the newer java.nio API.
+</li></ul>
+
+In addition, the following classes are also commonly used with text files, for both JDK 7 and earlier versions:
+<ul>
+<li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/util/Scanner.html">Scanner</a></tt> - allows 
+reading files in a compact way</li>
+<li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/BufferedReader.html">BufferedReader</a></tt> - <tt>readLine</tt></li>
+<li>
+<tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/BufferedWriter.html">BufferedWriter</a></tt> - <tt>write</tt>
++ <tt>newLine</tt></li>
+</ul>
+
+<p>When reading and writing text files:
+</p><ul>
+<li>it's often a good idea to use buffering (default size is 8K)</li>
+<li>there's always a need to pay attention to exceptions (in particular, <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html">IOException</a></tt>
+and <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileNotFoundException.html">FileNotFoundException</a></tt>)</li>
+</ul>
+
+<p><b>Character Encoding</b>
+
+</p><p>In order to correctly read and write text files, you need to understand that those read/write operations always use 
+an <b>implicit character encoding</b> to translate raw bytes - the 1s and 0s - into text.
+When a text file is saved, the tool that saves it must always use a character encoding
+(<a href="http://www.javapractices.com/topic/TopicAction.do?Id=206">UTF-8</a> is recommended).
+There's a problem, however. 
+The character encoding is not, in general, explicit: it's not saved as part of the file itself.
+Thus, a program that consumes a text file <span class="highlight">should know beforehand what its encoding is.</span> 
+If it doesn't, then the best it can do is make an assumption. 
+Problems with encoding usually show up as weird characters in a tool that has read the file.
+
+</p><p>The <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileReader.html">FileReader</a></tt>
+and <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html">FileWriter</a></tt>
+classes are a bit tricky, since <span class="highlight">they implicitly use the system's default character encoding</span>. If this
+default is not appropriate, the recommended alternatives are, for example:
+</p><p><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileInputStream.html">FileInputStream</a>
+fis = new FileInputStream("test.txt");</tt>
+<br><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/InputStreamReader.html">InputStreamReader</a>
+in = new InputStreamReader(fis, "UTF-8");</tt>
+</p><p><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html">FileOutputStream</a>
+fos = new FileOutputStream("test.txt");</tt>
+<br><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/OutputStreamWriter.html">OutputStreamWriter</a>
+out = new OutputStreamWriter(fos, "UTF-8");</tt>
+
+</p><p><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/util/Scanner.html">Scanner</a>
+scanner = new Scanner(file, "UTF-8");</tt>
+
+
+</p><p><b>Example 1 - JDK 7+</b>
+<br>
+</p><pre>
+<span class="keyword">import</span> java.io.BufferedReader;
+<span class="keyword">import</span> java.io.BufferedWriter;
+<span class="keyword">import</span> java.io.IOException;
+<span class="keyword">import</span> java.nio.charset.Charset;
+<span class="keyword">import</span> java.nio.charset.StandardCharsets;
+<span class="keyword">import</span> java.nio.file.Files;
+<span class="keyword">import</span> java.nio.file.Path;
+<span class="keyword">import</span> java.nio.file.Paths;
+<span class="keyword">import</span> java.util.Arrays;
+<span class="keyword">import</span> java.util.List;
+<span class="keyword">import</span> java.util.Scanner;
+
+<span class="keyword">public</span> <span class="keyword">class</span> ReadWriteTextFileJDK7 {
+  
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String... aArgs) <span class="keyword">throws</span> IOException{
+    ReadWriteTextFileJDK7 text = <span class="keyword">new</span> ReadWriteTextFileJDK7();
+    
+    <span class="comment">//treat as a small file
+</span>    List&lt;String&gt; lines = text.readSmallTextFile(FILE_NAME);
+    log(lines);
+    lines.add(<span class="literal">"This is a line added in code."</span>);
+    text.writeSmallTextFile(lines, FILE_NAME);
+    
+    <span class="comment">//treat as a large file - use some buffering
+</span>    text.readLargerTextFile(FILE_NAME);
+    lines = Arrays.asList(<span class="literal">"Down to the Waterline"</span>, <span class="literal">"Water of Love"</span>);
+    text.writeLargerTextFile(OUTPUT_FILE_NAME, lines);   
+  }
+
+  <span class="keyword">final</span> <span class="keyword">static</span> String FILE_NAME = <span class="literal">"C:\\Temp\\input.txt"</span>;
+  <span class="keyword">final</span> <span class="keyword">static</span> String OUTPUT_FILE_NAME = <span class="literal">"C:\\Temp\\output.txt"</span>;
+  <span class="keyword">final</span> <span class="keyword">static</span> Charset ENCODING = StandardCharsets.UTF_8;
+  
+  <span class="comment">//For smaller files
+</span>
+  <span class="comment">/**
+   Note: the javadoc of Files.readAllLines says it's intended for small
+   files. But its implementation uses buffering, so it's likely good 
+   even for fairly large files.
+  */</span>  
+  List&lt;String&gt; readSmallTextFile(String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    <span class="keyword">return</span> Files.readAllLines(path, ENCODING);
+  }
+  
+  <span class="keyword">void</span> writeSmallTextFile(List&lt;String&gt; aLines, String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    Files.write(path, aLines, ENCODING);
+  }
+
+  <span class="comment">//For larger files
+</span>  
+  <span class="keyword">void</span> readLargerTextFile(String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    <span class="keyword">try</span> (Scanner scanner =  <span class="keyword">new</span> Scanner(path, ENCODING.name())){
+      <span class="keyword">while</span> (scanner.hasNextLine()){
+        <span class="comment">//process each line in some way
+</span>        log(scanner.nextLine());
+      }      
+    }
+  }
+  
+  <span class="keyword">void</span> readLargerTextFileAlternate(String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    <span class="keyword">try</span> (BufferedReader reader = Files.newBufferedReader(path, ENCODING)){
+      String line = <span class="keyword">null</span>;
+      <span class="keyword">while</span> ((line = reader.readLine()) != <span class="keyword">null</span>) {
+        <span class="comment">//process each line in some way
+</span>        log(line);
+      }      
+    }
+  }
+  
+  <span class="keyword">void</span> writeLargerTextFile(String aFileName, List&lt;String&gt; aLines) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    <span class="keyword">try</span> (BufferedWriter writer = Files.newBufferedWriter(path, ENCODING)){
+      <span class="keyword">for</span>(String line : aLines){
+        writer.write(line);
+        writer.newLine();
+      }
+    }
+  }
+
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> log(Object aMsg){
+    System.out.println(String.valueOf(aMsg));
+  }
+  
+} 
+</pre>
+<br>
+
+<p><a name="Example3"><b>Example 2 - JDK 7+</b></a></p><p><a name="Example3">
+This example demonstrates using 
+<tt></tt></a><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/util/Scanner.html">Scanner</a></tt> to read a file containing lines of structured data.
+One <tt>Scanner</tt> is used to read in each line, and a second <tt>Scanner</tt> is used 
+to parse each line into a simple name-value pair.
+The Scanner class is only used for reading, not for writing. 
+<br>
+</p><pre>
+<span class="keyword">import</span> java.io.IOException;
+<span class="keyword">import</span> java.nio.charset.Charset;
+<span class="keyword">import</span> java.nio.charset.StandardCharsets;
+<span class="keyword">import</span> java.nio.file.Path;
+<span class="keyword">import</span> java.nio.file.Paths;
+<span class="keyword">import</span> java.util.Scanner;
+
+<span class="comment">/** Assumes UTF-8 encoding. JDK 7+. */</span>
+<span class="keyword">public</span> <span class="keyword">class</span> ReadWithScanner {
+
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String... aArgs) <span class="keyword">throws</span> IOException {
+    ReadWithScanner parser = <span class="keyword">new</span> ReadWithScanner(<span class="literal">"C:\\Temp\\test.txt"</span>);
+    parser.processLineByLine();
+    log(<span class="literal">"Done."</span>);
+  }
+  
+  <span class="comment">/**
+   Constructor.
+   @param aFileName full name of an existing, readable file.
+  */</span>
+  <span class="keyword">public</span> ReadWithScanner(String aFileName){
+    fFilePath = Paths.get(aFileName);
+  }
+  
+  
+  <span class="comment">/** Template method that calls {@link #processLine(String)}.  */</span>
+  <span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">void</span> processLineByLine() <span class="keyword">throws</span> IOException {
+    <span class="keyword">try</span> (Scanner scanner =  <span class="keyword">new</span> Scanner(fFilePath, ENCODING.name())){
+      <span class="keyword">while</span> (scanner.hasNextLine()){
+        processLine(scanner.nextLine());
+      }      
+    }
+  }
+  
+  <span class="comment">/** 
+   Overridable method for processing lines in different ways.
+    
+   &lt;P&gt;This simple default implementation expects simple name-value pairs, separated by an 
+   '=' sign. Examples of valid input: 
+   &lt;tt&gt;height = 167cm&lt;/tt&gt;
+   &lt;tt&gt;mass =  65kg&lt;/tt&gt;
+   &lt;tt&gt;disposition =  "grumpy"&lt;/tt&gt;
+   &lt;tt&gt;this is the name = this is the value&lt;/tt&gt;
+  */</span>
+  <span class="keyword">protected</span> <span class="keyword">void</span> processLine(String aLine){
+    <span class="comment">//use a second Scanner to parse the content of each line 
+</span>    Scanner scanner = <span class="keyword">new</span> Scanner(aLine);
+    scanner.useDelimiter(<span class="literal">"="</span>);
+    <span class="keyword">if</span> (scanner.hasNext()){
+      <span class="comment">//assumes the line has a certain structure
+</span>      String name = scanner.next();
+      String value = scanner.next();
+      log(<span class="literal">"Name is : "</span> + quote(name.trim()) + <span class="literal">", and Value is : "</span> + quote(value.trim()));
+    }
+    <span class="keyword">else</span> {
+      log(<span class="literal">"Empty or invalid line. Unable to process."</span>);
+    }
+  }
+  
+  <span class="comment">// PRIVATE 
+</span>  <span class="keyword">private</span> <span class="keyword">final</span> Path fFilePath;
+  <span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">static</span> Charset ENCODING = StandardCharsets.UTF_8;  
+  
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> log(Object aObject){
+    System.out.println(String.valueOf(aObject));
+  }
+  
+  <span class="keyword">private</span> String quote(String aText){
+    String QUOTE = <span class="literal">"'"</span>;
+    <span class="keyword">return</span> QUOTE + aText + QUOTE;
+  }
+} 
+</pre>
+<br>
+<br>Example run of this class:
+<pre>Name is : 'height', and Value is : '167cm'
+Name is : 'mass', and Value is : '65kg'
+Name is : 'disposition', and Value is : '"grumpy"'
+Name is : 'this is the name', and Value is : 'this is the value'
+Done.
+</pre>
+
+<p><b>Example 3 - JDK &lt; 7</b>
+</p><p>The try-with-resources feature is not available prior to JDK 7.
+In this case, you need to exercise care with respect to the <tt>close</tt> method:
+</p><ul>
+<li>it always needs to be called, or else resources will leak</li>
+<li>it will automatically flush the stream, if necessary</li>
+<li>calling <tt>close</tt> on a "wrapper" stream will automatically call <tt>close</tt>
+on its underlying stream</li>
+<li>closing a stream a second time has no consequence</li>
+<li>when called on a <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/util/Scanner.html">Scanner</a></tt>, the 
+<tt>close</tt> operation only works if the item passed to its constructor implements <tt><a href="http://download.oracle.com/javase/6/docs/api/java/io/Closeable.html">Closeable</a></tt>. 
+Warning: if you pass a <a href="http://download.oracle.com/javase/6/docs/api/java/io/File.html"><tt>File</tt></a> to a <tt>Scanner</tt>, you will <i>not</i> be able to close it!
+Try using a  <tt>FileReader</tt> instead.
+</li></ul>
+
+Here's a fairly compact example (for JDK 1.5) of reading and writing a text file, using an explicit encoding. 
+If you remove all references to encoding from this class, it will still work -- the system's default 
+encoding will simply be used instead.
+<br>
+<pre>
+<span class="keyword">import</span> java.io.*;
+<span class="keyword">import</span> java.util.Scanner;
+
+<span class="comment">/** 
+ Read and write a file using an explicit encoding.
+ JDK 1.5.
+ Removing the encoding from this code will simply cause the 
+ system's default encoding to be used instead.  
+*/</span>
+<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> ReadWriteTextFileWithEncoding {
+
+  <span class="comment">/** Requires two arguments - the file name, and the encoding to use.  */</span>
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String... aArgs) <span class="keyword">throws</span> IOException {
+    String fileName = aArgs[<span class="literal">0</span>];
+    String encoding = aArgs[<span class="literal">1</span>];
+    ReadWriteTextFileWithEncoding test = <span class="keyword">new</span> ReadWriteTextFileWithEncoding(
+      fileName, encoding
+    );
+    test.write();
+    test.read();
+  }
+  
+  <span class="comment">/** Constructor. */</span>
+  ReadWriteTextFileWithEncoding(String aFileName, String aEncoding){
+    fEncoding = aEncoding;
+    fFileName = aFileName;
+  }
+  
+  <span class="comment">/** Write fixed content to the given file. */</span>
+  <span class="keyword">void</span> write() <span class="keyword">throws</span> IOException  {
+    log(<span class="literal">"Writing to file named "</span> + fFileName + <span class="literal">". Encoding: "</span> + fEncoding);
+    Writer out = <span class="keyword">new</span> OutputStreamWriter(<span class="keyword">new</span> FileOutputStream(fFileName), fEncoding);
+    <span class="keyword">try</span> {
+      out.write(FIXED_TEXT);
+    }
+    <span class="keyword">finally</span> {
+      out.close();
+    }
+  }
+  
+  <span class="comment">/** Read the contents of the given file. */</span>
+  <span class="keyword">void</span> read() <span class="keyword">throws</span> IOException {
+    log(<span class="literal">"Reading from file."</span>);
+    StringBuilder text = <span class="keyword">new</span> StringBuilder();
+    String NL = System.getProperty(<span class="literal">"line.separator"</span>);
+    Scanner scanner = <span class="keyword">new</span> Scanner(<span class="keyword">new</span> FileInputStream(fFileName), fEncoding);
+    <span class="keyword">try</span> {
+      <span class="keyword">while</span> (scanner.hasNextLine()){
+        text.append(scanner.nextLine() + NL);
+      }
+    }
+    <span class="keyword">finally</span>{
+      scanner.close();
+    }
+    log(<span class="literal">"Text read in: "</span> + text);
+  }
+  
+  <span class="comment">// PRIVATE 
+</span>  <span class="keyword">private</span> <span class="keyword">final</span> String fFileName;
+  <span class="keyword">private</span> <span class="keyword">final</span> String fEncoding;
+  <span class="keyword">private</span> <span class="keyword">final</span> String FIXED_TEXT = <span class="literal">"But soft! what code in yonder program breaks?"</span>;
+  
+  <span class="keyword">private</span> <span class="keyword">void</span> log(String aMessage){
+    System.out.println(aMessage);
+  }
+}
+ 
+</pre>
+<br>
+<br><b>Example 4 - JDK &lt; 7</b><p>
+This example uses <tt>FileReader</tt> and <tt>FileWriter</tt>, which implicitly use the system's default encoding.
+It also uses buffering.
+To make this example compatible with JDK 1.4, just change <tt>StringBuilder</tt> to <tt>StringBuffer</tt>:
+<br>
+</p><pre>
+<span class="keyword">import</span> java.io.*;
+
+<span class="comment">/** JDK 6 or before. */</span>
+<span class="keyword">public</span> <span class="keyword">class</span> ReadWriteTextFile {
+
+  <span class="comment">/**
+  * Fetch the entire contents of a text file, and return it in a String.
+  * This style of implementation does not throw Exceptions to the caller.
+  *
+  * @param aFile is a file which already exists and can be read.
+  */</span>
+  <span class="keyword">static</span> <span class="keyword">public</span> String getContents(File aFile) {
+    <span class="comment">//...checks on aFile are elided
+</span>    StringBuilder contents = <span class="keyword">new</span> StringBuilder();
+    
+    <span class="keyword">try</span> {
+      <span class="comment">//use buffering, reading one line at a time
+</span>      <span class="comment">//FileReader always assumes default encoding is OK!
+</span>      BufferedReader input =  <span class="keyword">new</span> BufferedReader(<span class="keyword">new</span> FileReader(aFile));
+      <span class="keyword">try</span> {
+        String line = <span class="keyword">null</span>; <span class="comment">//not declared within while loop
+</span>        <span class="comment">/*
+        * readLine is a bit quirky :
+        * it returns the content of a line MINUS the newline.
+        * it returns null only for the END of the stream.
+        * it returns an empty String if two newlines appear in a row.
+        */</span>
+        <span class="keyword">while</span> (( line = input.readLine()) != <span class="keyword">null</span>){
+          contents.append(line);
+          contents.append(System.getProperty(<span class="literal">"line.separator"</span>));
+        }
+      }
+      <span class="keyword">finally</span> {
+        input.close();
+      }
+    }
+    <span class="keyword">catch</span> (IOException ex){
+      ex.printStackTrace();
+    }
+    
+    <span class="keyword">return</span> contents.toString();
+  }
+
+  <span class="comment">/**
+  * Change the contents of text file in its entirety, overwriting any
+  * existing text.
+  *
+  * This style of implementation throws all exceptions to the caller.
+  *
+  * @param aFile is an existing file which can be written to.
+  * @throws IllegalArgumentException if param does not comply.
+  * @throws FileNotFoundException if the file does not exist.
+  * @throws IOException if problem encountered during write.
+  */</span>
+  <span class="keyword">static</span> <span class="keyword">public</span> <span class="keyword">void</span> setContents(File aFile, String aContents)
+                                 <span class="keyword">throws</span> FileNotFoundException, IOException {
+    <span class="keyword">if</span> (aFile == <span class="keyword">null</span>) {
+      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="literal">"File should not be null."</span>);
+    }
+    <span class="keyword">if</span> (!aFile.exists()) {
+      <span class="keyword">throw</span> <span class="keyword">new</span> FileNotFoundException (<span class="literal">"File does not exist: "</span> + aFile);
+    }
+    <span class="keyword">if</span> (!aFile.isFile()) {
+      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="literal">"Should not be a directory: "</span> + aFile);
+    }
+    <span class="keyword">if</span> (!aFile.canWrite()) {
+      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="literal">"File cannot be written: "</span> + aFile);
+    }
+
+    <span class="comment">//use buffering
+</span>    Writer output = <span class="keyword">new</span> BufferedWriter(<span class="keyword">new</span> FileWriter(aFile));
+    <span class="keyword">try</span> {
+      <span class="comment">//FileWriter always assumes default encoding is OK!
+</span>      output.write( aContents );
+    }
+    <span class="keyword">finally</span> {
+      output.close();
+    }
+  }
+
+  <span class="comment">/** Simple test harness.   */</span>
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main (String... aArguments) <span class="keyword">throws</span> IOException {
+    File testFile = <span class="keyword">new</span> File(<span class="literal">"C:\\Temp\\blah.txt"</span>);
+    System.out.println(<span class="literal">"Original file contents: "</span> + getContents(testFile));
+    setContents(testFile, <span class="literal">"The content of this file has been overwritten..."</span>);
+    System.out.println(<span class="literal">"New file contents: "</span> + getContents(testFile));
+  }
+} 
+</pre>
+<br>
+<br>
+<br>
+
+</div>
+
+
+
+
+<div class="topic-section">See Also :</div>
+<div class="main-body">
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55?Id=8">Always close streams</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55?Id=87">Parse text</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55?Id=123">Minimize ripple effects</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55?Id=245">Reading and writing binary files</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55?Id=260">Open file in native directory</a> <br>
+ 
+</div>
+
+
+<div class="topic-section">Would you use this technique?</div>
+<div class="main-body">
+  
+  <form action="http://www.javapractices.com/vote/AddVoteAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55" method="post">
+    Yes<input type="radio" name="Choice" value="Y">
+    &nbsp;&nbsp;No<input type="radio" name="Choice" value="N">
+    &nbsp;&nbsp;Undecided<input type="radio" name="Choice" value="?">
+    &nbsp;&nbsp;<input type="submit" value="Vote">
+    <input type="hidden" name="Operation" value="Apply">
+    <input type="hidden" name="TopicId" value="42">
+  </form>
+</div>
+
+<div style="height:10.0em;"></div>
+
+ 
+ 
+</div>
+
+  
+
+ 
+
+
+
+
+
+<div align="center" class="legalese">  
+© 2016 Hirondelle Systems |
+<a href="http://www.javapractices.com/source/SourceAction.do;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55"><b>Source Code</b></a><img class="no-margin" src="./Java Practices -_ Reading and writing text files_files/goldstar.gif" alt=""> |
+<a href="mailto:webmaster@javapractices.com">Contact</a> |
+<a href="http://creativecommons.org/licenses/by-nc-sa/1.0/">License</a> |
+<a href="http://www.javapractices.com/apps/cjp.rss;jsessionid=04EC9B3F8FA3E25C3C952D0E2E345B55">RSS</a>
+<!-- ukey="2AC36CD2" -->
+<!-- ckey="16DF3D87" -->
+<br>
+
+ Individual code snippets can be used under this <a href="http://www.javapractices.com/LICENSE.txt">BSD license</a> - Last updated on September 21, 2013.<br>
+ Over 2,000,000 unique IPs last year - <span title="Java Practices 2.6.5, Mon May 16 00:00:00 EDT 2011">Built with</span> <a href="http://www.web4j.com/">WEB4J</a>.<br>
+ - In Memoriam : Bill Dirani -
+</div>
+
+<script async="" src="./Java Practices -_ Reading and writing text files_files/analytics.js"></script><script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-2633428-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+
+</body></html>
