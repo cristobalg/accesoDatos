@@ -1,0 +1,406 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0100)http://www.javapractices.com/topic/TopicAction.do;jsessionid=BB59F5E4CB50C474661291CC3155997B?Id=245 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+ <title>
+  Java Practices -&gt; Reading and writing binary files
+ </title>
+ <link rel="stylesheet" type="text/css" href="./Java Practices -_ Reading and writing binary files_files/stylesheet9.css" media="all">
+ 
+ <link rel="shortcut icon" href="http://www.javapractices.com/images/favicon.ico" type="image/vnd.microsoft.icon">
+ <meta name="description" content="Concise presentations of java programming practices, tasks, and conventions, amply illustrated with syntax highlighted code examples.">
+ 
+ <meta name="keywords" content="java,java programming,java practices,java idiom,java style,java design patterns,java coding conventions,">
+ 
+ 
+</head>
+ 
+<body>
+
+
+<div class="menu-bar">
+ 
+  <a href="http://www.javapractices.com/home/HomeAction.do" title="Table of Contents">Home</a> |
+  <a href="http://www.javapractices.com/vote/VoteSummaryAction.do" title="View Poll Results">Poll</a> |
+   
+  
+  <b><a href="http://www.javapractices.com/source/SourceAction.do" title="Grab Source Code">Source Code</a></b><img class="no-margin" src="./Java Practices -_ Reading and writing binary files_files/goldstar.gif" alt=""> |
+
+  <a href="https://ca.linkedin.com/in/johnohanley" title="Hire me"> <b>Hire Me</b></a> | 
+  <a href="http://www.web4j.com/Java_Web_Application_Framework_Overview.jsp?From=1" title="Free Download - Java Web Application Framework"><b>WEB4J</b></a> |
+  
+  <a href="http://www.formula4j.com/" title="Math expression parser"><b>Formula4J</b></a> |
+
+  <a href="http://www.amazon.com/exec/obidos/ASIN/0321356683/ref=nosim/javapractices-20"><b>Effective Java</b></a> |
+
+   <a href="http://www.javapractices.com/references/ReferencesAction.do" title="References">Links</a>
+   
+  <form action="http://www.javapractices.com/search/SearchAction.do" method="get" class="search-form">
+   <input type="text" name="SearchTerms" value="" size="12" maxlength="50" class="search">
+   <input type="submit" value="Search">
+  </form>
+ 
+</div>
+
+<p>
+
+
+
+
+  
+
+ 
+
+
+
+
+
+
+</p><p class="display-messages">
+
+ 
+
+ 
+
+</p>
+
+
+<div class="main-layout">
+ 
+   
+
+ 
+
+
+
+
+<div class="page-title">Reading and writing binary files</div>
+
+<div class="main-body">
+ 
+<br>In JDK 7, the most important classes for binary files are:
+<ul>
+ <li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Paths.html">Paths</a></tt> and <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Path.html">Path</a></tt> - file locations/names, but not their content.
+ </li><li><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/nio/file/Files.html">Files</a></tt> - operations on file content.
+ </li><li>the <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/File.html#toPath%28%29">File.toPath</a></tt> method, 
+ which lets older code interact nicely with the newer java.nio API.
+</li></ul>
+
+<p>In addition, the following classes are also commonly used with binary files, for both JDK 7 and earlier versions:
+</p><table border="0" cellpadding="3" cellspacing="1">
+ <tbody><tr>
+  <th>Input
+  </th><th>Output
+ </th></tr><tr>
+  <td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileInputStream.html">FileInputStream</a></tt>
+  </td><td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileOutputStream.html">FileOutputStream</a></tt>
+ </td></tr><tr>
+  <td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/BufferedInputStream.html">BufferedInputStream</a></tt>
+  </td><td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/BufferedOutputStream.html">BufferedOutputStream</a></tt>
+ </td></tr><tr>
+  <td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/ByteArrayInputStream.html">ByteArrayInputStream</a></tt>
+  </td><td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/ByteArrayOutputStream.html">ByteArrayOutputStream</a></tt>
+ </td></tr><tr>  
+  <td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/DataInput.html">DataInput</a></tt>
+  </td><td><tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/DataOutput.html">DataOutput</a></tt>
+</td></tr></tbody></table>
+
+<p>When reading and writing binary files:
+</p><ul>
+<li>it's almost always a good idea to use buffering (default buffer size is 8K)</li>
+<li>it's often possible to use references to abstract base classes, instead
+of references to specific concrete classes</li>
+<li>there's always a need to pay attention to exceptions (in particular, <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/IOException.html">IOException</a></tt>
+and <tt><a href="http://docs.oracle.com/javase/7/docs/api/java/io/FileNotFoundException.html">FileNotFoundException</a></tt>)</li>
+</ul>
+
+<p><b>Example - Small Files</b>
+<br>
+</p><pre>
+<span class="keyword">import</span> java.io.IOException;
+<span class="keyword">import</span> java.nio.file.Files;
+<span class="keyword">import</span> java.nio.file.Path;
+<span class="keyword">import</span> java.nio.file.Paths;
+
+<span class="comment">/** JDK 7+. */</span>
+<span class="keyword">public</span> <span class="keyword">class</span> SmallBinaryFiles {
+  
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String... aArgs) <span class="keyword">throws</span> IOException{
+    SmallBinaryFiles binary = <span class="keyword">new</span> SmallBinaryFiles();
+    <span class="keyword">byte</span>[] bytes = binary.readSmallBinaryFile(FILE_NAME);
+    log(<span class="literal">"Small - size of file read in:"</span> + bytes.length);
+    binary.writeSmallBinaryFile(bytes, OUTPUT_FILE_NAME);
+  }
+
+  <span class="keyword">final</span> <span class="keyword">static</span> String FILE_NAME = <span class="literal">"C:\\Temp\\cottage.jpg"</span>;
+  <span class="keyword">final</span> <span class="keyword">static</span> String OUTPUT_FILE_NAME = <span class="literal">"C:\\Temp\\cottage_output.jpg"</span>;
+  
+  <span class="keyword">byte</span>[] readSmallBinaryFile(String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    <span class="keyword">return</span> Files.readAllBytes(path);
+  }
+  
+  <span class="keyword">void</span> writeSmallBinaryFile(<span class="keyword">byte</span>[] aBytes, String aFileName) <span class="keyword">throws</span> IOException {
+    Path path = Paths.get(aFileName);
+    Files.write(path, aBytes); <span class="comment">//creates, overwrites
+</span>  }
+  
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> log(Object aMsg){
+    System.out.println(String.valueOf(aMsg));
+  }
+  
+}  
+</pre>
+<br>
+<p>If JDK 7's try-with-resources isn't available to you, then, you need to be careful with 
+the <tt>close</tt> method:
+</p><ul>
+<li>it usually needs to be called, or else resources will leak. </li>
+<li>for streams that don't use the disk or network, such as the <tt>ByteArrayXXX</tt> streams, 
+the <tt>close</tt> operation is a no-operation. In these cases, you don't need to call <tt>close</tt>.
+</li><li><tt>close</tt> will automatically flush the stream, if necessary.</li>
+<li>calling <tt>close</tt> on a "wrapper" stream will automatically call <tt>close</tt>
+on its underlying stream.</li>
+<li>closing a stream a second time is a no-operation.</li>
+</ul>
+<p><b>Example - JDK &lt; 7</b></p><p>
+This example reads and writes binary data, moving it from disk to memory, and then back again.
+<br>
+</p><pre>
+<span class="keyword">import</span> java.io.BufferedInputStream;
+<span class="keyword">import</span> java.io.BufferedOutputStream;
+<span class="keyword">import</span> java.io.ByteArrayOutputStream;
+<span class="keyword">import</span> java.io.File;
+<span class="keyword">import</span> java.io.FileInputStream;
+<span class="keyword">import</span> java.io.FileNotFoundException;
+<span class="keyword">import</span> java.io.FileOutputStream;
+<span class="keyword">import</span> java.io.IOException;
+<span class="keyword">import</span> java.io.InputStream;
+<span class="keyword">import</span> java.io.OutputStream;
+
+<span class="comment">/**  
+ Converting binary data into different forms.
+ 
+ &lt;P&gt;Reads binary data into memory, and writes it back out.
+ (If your're actually copying a file, there are better ways to do this.)
+ 
+ &lt;P&gt;Buffering is used when reading and writing files, to minimize the number 
+ of interactions with the disk.
+*/</span>
+<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">class</span> BytesStreamsAndFiles {
+
+  <span class="comment">/** Change these settings before running this class. */</span>
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String INPUT_FILE_NAME = <span class="literal">"C:\\TEMP\\cottage.jpg"</span>;
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String OUTPUT_FILE_NAME = <span class="literal">"C:\\TEMP\\cottage_copy.jpg"</span>;
+
+  <span class="comment">/** Run the example. */</span>
+  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String... aArgs) {
+    BytesStreamsAndFiles test = <span class="keyword">new</span> BytesStreamsAndFiles();
+    <span class="comment">//read in the bytes
+</span>    <span class="keyword">byte</span>[] fileContents = test.read(INPUT_FILE_NAME);
+    <span class="comment">//test.readAlternateImpl(INPUT_FILE_NAME);
+</span>    <span class="comment">//write it back out to a different file name
+</span>    test.write(fileContents, OUTPUT_FILE_NAME);
+  }
+  
+  <span class="comment">/** Read the given binary file, and return its contents as a byte array.*/</span> 
+  <span class="keyword">byte</span>[] read(String aInputFileName){
+    log(<span class="literal">"Reading in binary file named : "</span> + aInputFileName);
+    File file = <span class="keyword">new</span> File(aInputFileName);
+    log(<span class="literal">"File size: "</span> + file.length());
+    <span class="keyword">byte</span>[] result = <span class="keyword">new</span> <span class="keyword">byte</span>[(<span class="keyword">int</span>)file.length()];
+    <span class="keyword">try</span> {
+      InputStream input = <span class="keyword">null</span>;
+      <span class="keyword">try</span> {
+        <span class="keyword">int</span> totalBytesRead = <span class="literal">0</span>;
+        input = <span class="keyword">new</span> BufferedInputStream(<span class="keyword">new</span> FileInputStream(file));
+        <span class="keyword">while</span>(totalBytesRead &lt; result.length){
+          <span class="keyword">int</span> bytesRemaining = result.length - totalBytesRead;
+          <span class="comment">//input.read() returns -1, 0, or more :
+</span>          <span class="keyword">int</span> bytesRead = input.read(result, totalBytesRead, bytesRemaining); 
+          <span class="keyword">if</span> (bytesRead &gt; <span class="literal">0</span>){
+            totalBytesRead = totalBytesRead + bytesRead;
+          }
+        }
+        <span class="comment">/*
+         the above style is a bit tricky: it places bytes into the 'result' array; 
+         'result' is an output parameter;
+         the while loop usually has a single iteration only.
+        */</span>
+        log(<span class="literal">"Num bytes read: "</span> + totalBytesRead);
+      }
+      <span class="keyword">finally</span> {
+        log(<span class="literal">"Closing input stream."</span>);
+        input.close();
+      }
+    }
+    <span class="keyword">catch</span> (FileNotFoundException ex) {
+      log(<span class="literal">"File not found."</span>);
+    }
+    <span class="keyword">catch</span> (IOException ex) {
+      log(ex);
+    }
+    <span class="keyword">return</span> result;
+  }
+  
+  <span class="comment">/**
+   Write a byte array to the given file. 
+   Writing binary data is significantly simpler than reading it. 
+  */</span>
+  <span class="keyword">void</span> write(<span class="keyword">byte</span>[] aInput, String aOutputFileName){
+    log(<span class="literal">"Writing binary file..."</span>);
+    <span class="keyword">try</span> {
+      OutputStream output = <span class="keyword">null</span>;
+      <span class="keyword">try</span> {
+        output = <span class="keyword">new</span> BufferedOutputStream(<span class="keyword">new</span> FileOutputStream(aOutputFileName));
+        output.write(aInput);
+      }
+      <span class="keyword">finally</span> {
+        output.close();
+      }
+    }
+    <span class="keyword">catch</span>(FileNotFoundException ex){
+      log(<span class="literal">"File not found."</span>);
+    }
+    <span class="keyword">catch</span>(IOException ex){
+      log(ex);
+    }
+  }
+  
+  <span class="comment">/** Read the given binary file, and return its contents as a byte array.*/</span> 
+  <span class="keyword">byte</span>[] readAlternateImpl(String aInputFileName){
+    log(<span class="literal">"Reading in binary file named : "</span> + aInputFileName);
+    File file = <span class="keyword">new</span> File(aInputFileName);
+    log(<span class="literal">"File size: "</span> + file.length());
+    <span class="keyword">byte</span>[] result = <span class="keyword">null</span>;
+    <span class="keyword">try</span> {
+      InputStream input =  <span class="keyword">new</span> BufferedInputStream(<span class="keyword">new</span> FileInputStream(file));
+      result = readAndClose(input);
+    }
+    <span class="keyword">catch</span> (FileNotFoundException ex){
+      log(ex);
+    }
+    <span class="keyword">return</span> result;
+  }
+  
+  <span class="comment">/**
+   Read an input stream, and return it as a byte array.  
+   Sometimes the source of bytes is an input stream instead of a file. 
+   This implementation closes aInput after it's read.
+  */</span>
+  <span class="keyword">byte</span>[] readAndClose(InputStream aInput){
+    <span class="comment">//carries the data from input to output :    
+</span>    <span class="keyword">byte</span>[] bucket = <span class="keyword">new</span> <span class="keyword">byte</span>[<span class="literal">32</span>*<span class="literal">1024</span>]; 
+    ByteArrayOutputStream result = <span class="keyword">null</span>; 
+    <span class="keyword">try</span>  {
+      <span class="keyword">try</span> {
+        <span class="comment">//Use buffering? No. Buffering avoids costly access to disk or network;
+</span>        <span class="comment">//buffering to an in-memory stream makes no sense.
+</span>        result = <span class="keyword">new</span> ByteArrayOutputStream(bucket.length);
+        <span class="keyword">int</span> bytesRead = <span class="literal">0</span>;
+        <span class="keyword">while</span>(bytesRead != -<span class="literal">1</span>){
+          <span class="comment">//aInput.read() returns -1, 0, or more :
+</span>          bytesRead = aInput.read(bucket);
+          <span class="keyword">if</span>(bytesRead &gt; <span class="literal">0</span>){
+            result.write(bucket, <span class="literal">0</span>, bytesRead);
+          }
+        }
+      }
+      <span class="keyword">finally</span> {
+        aInput.close();
+        <span class="comment">//result.close(); this is a no-operation for ByteArrayOutputStream
+</span>      }
+    }
+    <span class="keyword">catch</span> (IOException ex){
+      log(ex);
+    }
+    <span class="keyword">return</span> result.toByteArray();
+  }
+  
+  <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> log(Object aThing){
+    System.out.println(String.valueOf(aThing));
+  }
+} 
+</pre>
+<br>
+<br>
+
+</div>
+
+
+
+
+<div class="topic-section">See Also :</div>
+<div class="main-body">
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do?Id=8">Always close streams</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do?Id=42">Reading and writing text files</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do?Id=123">Minimize ripple effects</a> <br>
+ 
+  
+  <a href="http://www.javapractices.com/topic/TopicAction.do?Id=246">Copy a file</a> <br>
+ 
+</div>
+
+
+<div class="topic-section">Would you use this technique?</div>
+<div class="main-body">
+  
+  <form action="http://www.javapractices.com/vote/AddVoteAction.do" method="post">
+    Yes<input type="radio" name="Choice" value="Y">
+    &nbsp;&nbsp;No<input type="radio" name="Choice" value="N">
+    &nbsp;&nbsp;Undecided<input type="radio" name="Choice" value="?">
+    &nbsp;&nbsp;<input type="submit" value="Vote">
+    <input type="hidden" name="Operation" value="Apply">
+    <input type="hidden" name="TopicId" value="245">
+  </form>
+</div>
+
+<div style="height:10.0em;"></div>
+
+ 
+ 
+</div>
+
+  
+
+ 
+
+
+
+
+
+<div align="center" class="legalese">  
+© 2016 Hirondelle Systems |
+<a href="http://www.javapractices.com/source/SourceAction.do"><b>Source Code</b></a><img class="no-margin" src="./Java Practices -_ Reading and writing binary files_files/goldstar.gif" alt=""> |
+<a href="mailto:webmaster@javapractices.com">Contact</a> |
+<a href="http://creativecommons.org/licenses/by-nc-sa/1.0/">License</a> |
+<a href="http://www.javapractices.com/apps/cjp.rss">RSS</a>
+<!-- ukey="2AC36CD2" -->
+<!-- ckey="16DF3D87" -->
+<br>
+
+ Individual code snippets can be used under this <a href="http://www.javapractices.com/LICENSE.txt">BSD license</a> - Last updated on September 21, 2013.<br>
+ Over 2,000,000 unique IPs last year - <span title="Java Practices 2.6.5, Mon May 16 00:00:00 EDT 2011">Built with</span> <a href="http://www.web4j.com/">WEB4J</a>.<br>
+ - In Memoriam : Bill Dirani -
+</div>
+
+<script async="" src="./Java Practices -_ Reading and writing binary files_files/analytics.js"></script><script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-2633428-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+
+
+
+</body></html>
